@@ -1,0 +1,28 @@
+{
+  "name": "bacterial-culture-analyzer",
+  "version": "1.0.0",
+  "description": "Professional Bacterial Culture Analysis Tool",
+  "main": "index.js",
+  "scripts": {
+    "start": "python app.py",
+    "build": "echo 'Building PWA...'",
+    "capacitor:sync": "npx cap sync",
+    "capacitor:android": "npx cap add android && npx cap sync android",
+    "capacitor:build": "npm run build && npm run capacitor:sync",
+    "android:build": "npm run capacitor:android && cd android && ./gradlew assembleDebug",
+    "android:release": "npm run capacitor:android && cd android && ./gradlew assembleRelease"
+  },
+  "dependencies": {
+    "@capacitor/android": "^5.0.0",
+    "@capacitor/core": "^5.0.0",
+    "@capacitor/cli": "^5.0.0"
+  },
+  "devDependencies": {},
+  "keywords": ["bacterial", "culture", "analysis", "laboratory", "science"],
+  "author": "LabTools",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "."
+  }
+}

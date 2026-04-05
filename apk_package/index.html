@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#00f5c4"/>
+<meta name="description" content="Professional Bacterial Culture Analysis Tool"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Bacterial Analyzer"/>
+<link rel="manifest" href="/static/manifest.json"/>
+<link rel="apple-touch-icon" href="/static/icon-192.png"/>
+<title>Bacterial Culture Analyzer Pro</title>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#06090f;--surface:#0c1520;--surface2:#0a1826;
+  --border:#1a2d42;--border2:#243d56;
+  --text:#ddeeff;--text2:#7a9ab5;--muted:#3a6080;
+  --c1:#00f5c4;--c2:#ff6b6b;--c3:#ffd93d;--c4:#c084fc;--c5:#60a5fa;
+  --shadow:0 8px 32px #00000055;
+  --accent:#00f5c4;
+}
+body.light{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#e8eef5;
+  --border:#d0dce8;--border2:#b8ccdc;
+  --text:#0d1e2e;--text2:#4a6a86;--muted:#6a8aa6;
+  --shadow:0 8px 32px #00000018;
+}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;transition:background .3s,color .3s}
+.app{max-width:1300px;margin:0 auto;padding:24px 16px 60px;display:flex;flex-direction:column;gap:18px}
+
+/* ── Header ── */
+header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.header-left h1{font-size:clamp(1.3rem,3vw,2rem);font-weight:800;letter-spacing:-1px;background:linear-gradient(120deg,#00f5c4 0%,#6bcbff 50%,#ff6b6b 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.header-left p{color:var(--muted);font-family:'Space Mono',monospace;font-size:0.7rem;margin-top:3px}
+.header-right{display:flex;gap:6px;flex-wrap:wrap}
+
+/* ── Buttons ── */
+.btn{padding:6px 12px;border-radius:7px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:'Syne',sans-serif;font-size:0.75rem;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:hover{border-color:var(--c1);color:var(--c1);background:color-mix(in srgb,var(--c1) 8%,transparent)}
+.btn.active{border-color:var(--c1);color:var(--c1);background:color-mix(in srgb,var(--c1) 10%,transparent)}
+.btn.danger:hover{border-color:#ff6b6b;color:#ff6b6b;background:#ff6b6b0d}
+.btn-primary{padding:8px 16px;border-radius:7px;border:none;background:linear-gradient(135deg,#00c49a,#007bbf);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:0.82rem;cursor:pointer;transition:opacity .15s;white-space:nowrap;}
+.btn-primary:hover{opacity:.85}
+
+/* ── Tabs ── */
+.tab-bar{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:5px;flex-wrap:wrap;}
+.tab{padding:6px 16px;border-radius:7px;border:none;background:transparent;color:var(--muted);font-family:'Syne',sans-serif;font-size:0.78rem;font-weight:600;cursor:pointer;transition:all .15s;}
+.tab.active{background:var(--surface2);color:var(--text);border:1px solid var(--border2);}
+
+/* ── Toolbar ── */
+.toolbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px;}
+.toolbar-sep{width:1px;height:22px;background:var(--border);margin:0 3px}
+
+/* ── Storage bar ── */
+.storage-bar{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:7px 14px;flex-wrap:wrap;gap:8px;}
+.storage-info{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.storage-dot{width:7px;height:7px;border-radius:50%;background:#00f5c4;box-shadow:0 0 5px #00f5c4;animation:sPulse 2s infinite;flex-shrink:0;}
+@keyframes sPulse{0%,100%{opacity:1}50%{opacity:.4}}
+.storage-label{font-family:'Space Mono',monospace;font-size:0.68rem;color:var(--text2);}
+.storage-meta{font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--muted);}
+.storage-actions{display:flex;gap:5px;}
+
+/* ── Stats row ── */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:13px 15px;cursor:pointer;position:relative;overflow:hidden;transition:border-color .2s,transform .15s;}
+.stat-card:hover{transform:translateY(-2px)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent)}
+.stat-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.stat-header{display:flex;align-items:center;gap:6px}
+.stat-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.stat-name{font-size:0.78rem;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;font-family:'Syne',sans-serif;width:120px;cursor:text;}
+.icon-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:0.82rem;padding:2px 5px;border-radius:4px;transition:color .15s;}
+.icon-btn:hover{color:#ff6b6b}
+.stat-vals{display:flex;gap:10px;flex-wrap:wrap}
+.stat-item{display:flex;flex-direction:column;gap:1px}
+.stat-label{font-family:'Space Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.stat-value{font-family:'Space Mono',monospace;font-size:0.85rem;font-weight:700;color:var(--accent)}
+
+/* Editable stat input */
+.stat-input{font-family:'Space Mono',monospace;font-size:0.85rem;font-weight:700;color:var(--accent);background:var(--surface2);border:1px solid var(--border);padding:4px 6px;border-radius:4px;outline:none;transition:all 0.2s;}
+.stat-input:focus{border-color:var(--c1);box-shadow:0 0 8px rgba(0,245,196,0.3)}
+
+/* ── Chart ── */
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:18px;display:flex;flex-direction:column;gap:12px;}
+.chart-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.chart-title{font-size:0.9rem;font-weight:800}
+.chart-wrap{position:relative;width:100%;overflow-x:auto}
+.chart-wrap img{max-width:100%;height:auto;display:block}
+
+/* ── Modal ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:#000000aa;z-index:100;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:22px;width:min(460px,94vw);display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow);animation:slideUp .2s ease;}
+@keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-title{font-size:0.95rem;font-weight:800}
+.modal-actions{display:flex;gap:7px;justify-content:flex-end}
+
+/* ── DT Result ── */
+.dt-result{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:12px;display:flex;flex-direction:column;gap:8px;}
+.dt-row{display:flex;justify-content:space-between;align-items:center}
+.dt-label{font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.dt-value{font-family:'Space Mono',monospace;font-size:0.95rem;font-weight:700;color:var(--c1)}
+
+/* ── AI Output ── */
+.ai-output{background:var(--surface2);border:1px solid var(--border2);border-radius:9px;padding:14px;font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--text2);line-height:1.8;min-height:80px;white-space:pre-wrap}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--surface);border:1px solid var(--c1);color:var(--text);border-radius:9px;padding:11px 16px;font-family:'Space Mono',monospace;font-size:0.75rem;box-shadow:var(--shadow);z-index:200;animation:fadeIn .3s ease;pointer-events:none;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Header -->
+<header>
+  <div class="header-left">
+    <h1>Bacterial Culture Analyzer Pro</h1>
+    <p id="metaSubtitle">Multi-variation OD₆₀₀ · Growth kinetics · AI-powered analysis</p>
+  </div>
+  <div class="header-right">
+    <button class="btn" onclick="toggleTheme()" id="themeBtn">☀ Light</button>
+    <button class="btn" onclick="exportPNG()">⬇ PNG</button>
+    <button class="btn" onclick="exportCSV()">⬇ CSV</button>
+    <button class="btn" onclick="copyToClipboard()">📋 Copy</button>
+    <button class="btn" onclick="printReport()">🖨 Print</button>
+    <button class="btn" onclick="saveSession()">💾 Save</button>
+    <button class="btn" onclick="document.getElementById('importSessionInput').click()">📂 Load</button>
+    <input type="file" id="importSessionInput" accept=".json" style="display:none" onchange="loadSession(event)"/>
+    <button class="btn" onclick="shareViaURL()">🔗 Share</button>
+  </div>
+</header>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <button class="btn active" id="btnPhases" onclick="togglePhases()">📊 Phases</button>
+  <button class="btn" id="btnLog" onclick="toggleLog()">📈 Log Scale</button>
+  <button class="btn" id="btnErrorBars" onclick="toggleErrorBars()">± Errors</button>
+  <button class="btn active" id="btnFit" onclick="toggleFit()">〜 Curve Fit</button>
+  <button class="btn active" id="btnPredict" onclick="togglePredict()">🔮 Predict</button>
+  <div class="toolbar-sep"></div>
+  <button class="btn" onclick="resetZoom()">🔍 Zoom Reset</button>
+  <button class="btn active" id="btnAnimate" onclick="toggleAnimate()">✨ Animate</button>
+  <div class="toolbar-sep"></div>
+  <button class="btn" onclick="document.getElementById('csvFileInput').click()">📥 Import CSV</button>
+  <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="importCSV(event)"/>
+</div>
+
+<!-- Storage Bar -->
+<div class="storage-bar">
+  <div class="storage-info">
+    <div class="storage-dot" id="storageDot"></div>
+    <span class="storage-label" id="storageLabel">Auto-save: Active</span>
+    <span class="storage-meta" id="storageMeta">Saves to browser on every change</span>
+  </div>
+  <div class="storage-actions">
+    <button class="btn" onclick="saveSnapshot()">📸 Snapshot</button>
+    <button class="btn" onclick="toggleSnap()">🕓 History</button>
+    <button class="btn danger" onclick="clearStorage()">🗑 Clear</button>
+  </div>
+</div>
+
+<!-- Snapshot panel -->
+<div id="snapPanel" style="display:none">
+  <div class="panel">
+    <div class="panel-title">📸 Snapshot History</div>
+    <div id="snapList"><p>No snapshots yet.</p></div>
+  </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="stats-row" id="statsRow"></div>
+
+<!-- Main Tab Bar -->
+<div class="tab-bar">
+  <button class="tab active" onclick="switchTab('growth',this)">📈 Growth Curve</button>
+  <button class="tab" onclick="switchTab('heatmap',this)">🌡 Heatmap</button>
+  <button class="tab" onclick="switchTab('radar',this)">🕸 Radar</button>
+  <button class="tab" onclick="switchTab('science',this)">🔬 Scientific Tools</button>
+</div>
+
+</div><!-- end app -->
+
+<script>
+// Global variables
+let currentTab = 'growth';
+let currentData = {};
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Page loaded, fetching data...');
+    loadData();
+});
+
+// Load data from backend
+async function loadData() {
+    try {
+        console.log('Fetching data from /api/data');
+        const response = await fetch('/api/data');
+        if (!response.ok) throw new Error('Failed to fetch data');
+        currentData = await response.json();
+        console.log('Data loaded:', Object.keys(currentData));
+        updateStatsCards();
+        renderCurrentTab();
+    } catch (error) {
+        console.error('Error loading data:', error);
+        showToast('Error loading data: ' + error.message, 'error');
+    }
+}
+
+// Tab switching
+function switchTab(tabName, button) {
+    console.log('Switching to tab:', tabName);
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+    button.classList.add('active');
+    currentTab = tabName;
+    renderCurrentTab();
+}
+
+// Render current tab content
+async function renderCurrentTab() {
+    try {
+        console.log('Rendering tab:', currentTab);
+        
+        // Remove existing chart container
+        const existing = document.getElementById('chartContainer');
+        if (existing) existing.remove();
+
+        // Create new chart container
+        const chartContainer = document.createElement('div');
+        chartContainer.id = 'chartContainer';
+        chartContainer.className = 'chart-card';
+        chartContainer.innerHTML = `
+            <div class="chart-header">
+                <div class="chart-title">${getTabTitle(currentTab)}</div>
+            </div>
+            <div class="chart-wrap">
+                <img id="chartImage" src="" alt="Loading chart..." style="max-width:100%;height:auto;">
+            </div>
+        `;
+        document.querySelector('.app').appendChild(chartContainer);
+
+        // Build query parameters for growth chart
+        let url = `/api/chart/${currentTab}`;
+        if (currentTab === 'growth') {
+            const params = new URLSearchParams();
+            params.append('phases', document.getElementById('btnPhases').classList.contains('active'));
+            params.append('log_scale', document.getElementById('btnLog').classList.contains('active'));
+            params.append('errors', document.getElementById('btnErrorBars').classList.contains('active'));
+            params.append('fit', document.getElementById('btnFit').classList.contains('active'));
+            params.append('predict', document.getElementById('btnPredict').classList.contains('active'));
+            url += '?' + params.toString();
+        }
+
+        // Fetch chart from backend
+        console.log('Fetching chart from ' + url);
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Failed to fetch chart: ' + response.status);
+        
+        const data = await response.json();
+        console.log('Chart data received');
+        
+        // Display chart image
+        const chartImage = document.getElementById('chartImage');
+        if (chartImage) {
+            chartImage.src = data.chart;
+            chartImage.alt = currentTab + ' chart';
+            console.log('Chart image displayed');
+        }
+    } catch (error) {
+        console.error('Error rendering chart:', error);
+        const chartWrap = document.querySelector('.chart-wrap');
+        if (chartWrap) {
+            chartWrap.innerHTML = '<p style="color:red;">Error loading chart: ' + error.message + '</p>';
+        }
+        showToast('Error rendering chart: ' + error.message, 'error');
+    }
+}
+
+function getTabTitle(tab) {
+    const titles = {
+        'growth': '📈 Growth Curve Analysis',
+        'heatmap': '🌡 Growth Heatmap',
+        'radar': '🕸 Parameter Comparison',
+        'science': '🔬 Scientific Tools'
+    };
+    return titles[tab] || 'Chart';
+}
+
+// Update statistics cards
+function updateStatsCards() {
+    const statsRow = document.getElementById('statsRow');
+    statsRow.innerHTML = '';
+    
+    Object.keys(currentData).forEach(condition => {
+        const card = createStatCard(condition);
+        statsRow.appendChild(card);
+    });
+}
+
+function createStatCard(condition) {
+    const data = currentData[condition];
+    const maxOD = Math.max(...data.od600);
+    const avgGrowth = calculateAverageGrowth(data);
+    
+    const card = document.createElement('div');
+    card.className = 'stat-card';
+    
+    card.innerHTML = `
+        <div class="stat-top">
+            <div class="stat-header">
+                <div class="stat-dot"></div>
+                <input class="stat-name" value="${condition}" readonly>
+            </div>
+            <button class="icon-btn" onclick="analyzeCondition('${condition}')">⋯</button>
+        </div>
+        <div class="stat-vals">
+            <div class="stat-item">
+                <div class="stat-label">MAX OD</div>
+                <input type="number" class="stat-value stat-input" step="0.01" min="0" max="10" 
+                       value="${maxOD.toFixed(3)}" 
+                       data-condition="${condition}" 
+                       data-type="max"
+                       onchange="updateStatValue(this, '${condition}', 'max')">
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">GROWTH</div>
+                <input type="number" class="stat-value stat-input" step="0.001" min="0" max="1"
+                       value="${avgGrowth.toFixed(3)}"
+                       data-condition="${condition}"
+                       data-type="avg"
+                       onchange="updateStatValue(this, '${condition}', 'avg')">
+            </div>
+        </div>
+    `;
+    
+    return card;
+}
+
+function calculateAverageGrowth(data) {
+    const od600 = data.od600;
+    let totalGrowth = 0;
+    let count = 0;
+    
+    for (let i = 1; i < od600.length; i++) {
+        const growth = od600[i] - od600[i-1];
+        if (growth > 0) {
+            totalGrowth += growth;
+            count++;
+        }
+    }
+    
+    return count > 0 ? totalGrowth / count : 0;
+}
+
+// Update stat value and regenerate chart
+function updateStatValue(input, condition, type) {
+    const newValue = parseFloat(input.value);
+    
+    if (isNaN(newValue) || newValue < 0) {
+        console.error('Invalid value:', newValue);
+        return;
+    }
+    
+    const data = currentData[condition];
+    const time = data.time;
+    const od600 = data.od600;
+    
+    if (type === 'max') {
+        // Scale all OD values proportionally to match new max
+        const currentMax = Math.max(...od600);
+        const scaleFactor = newValue / currentMax;
+        currentData[condition].od600 = od600.map(val => val * scaleFactor);
+        console.log('Updated max OD for', condition, 'to', newValue);
+    } else if (type === 'avg') {
+        // Adjust growth rate - add/subtract difference from all values
+        const currentAvg = calculateAverageGrowth(data);
+        const difference = newValue - currentAvg;
+        currentData[condition].od600 = od600.map((val, i) => 
+            i === 0 ? val : val + (difference * i / od600.length)
+        );
+        console.log('Updated avg growth for', condition, 'to', newValue);
+    }
+    
+    // Update the display and re-render
+    updateStatsCards();
+    renderCurrentTab();
+    showToast(`${condition} updated successfully`);
+}
+
+// Analyze specific condition
+async function analyzeCondition(condition) {
+    try {
+        const response = await fetch(`/api/analyze/${condition}`);
+        if (!response.ok) throw new Error('Failed to analyze');
+        const analysis = await response.json();
+        showAnalysisModal(analysis);
+    } catch (error) {
+        console.error('Error analyzing:', error);
+        showToast('Error analyzing condition: ' + error.message, 'error');
+    }
+}
+
+function showAnalysisModal(analysis) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.onclick = () => modal.remove();
+    
+    modal.innerHTML = `
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-title">Analysis: ${analysis.condition}</div>
+            ${analysis.parameters ? `
+                <div class="dt-result">
+                    <div class="dt-row">
+                        <span class="dt-label">Carrying Capacity</span>
+                        <span class="dt-value">${analysis.parameters.carrying_capacity}</span>
+                    </div>
+                    <div class="dt-row">
+                        <span class="dt-label">Growth Rate</span>
+                        <span class="dt-value">${analysis.parameters.growth_rate}</span>
+                    </div>
+                    <div class="dt-row">
+                        <span class="dt-label">Lag Time</span>
+                        <span class="dt-value">${analysis.parameters.lag_time}h</span>
+                    </div>
+                    <div class="dt-row">
+                        <span class="dt-label">Doubling Time</span>
+                        <span class="dt-value">${analysis.parameters.doubling_time}h</span>
+                    </div>
+                </div>
+                ${analysis.insights && analysis.insights.length > 0 ? `
+                    <div class="ai-output">
+                        <strong>AI Insights:</strong><br>
+                        ${analysis.insights.map(insight => `• ${insight}`).join('<br>')}
+                    </div>
+                ` : ''}
+            ` : `
+                <p>${analysis.error || 'Error analyzing condition'}</p>
+            `}
+            <div class="modal-actions">
+                <button class="btn" onclick="this.closest('.modal-overlay').remove()">Close</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.classList.add('open');
+}
+
+// Theme toggle
+function toggleTheme() {
+    document.body.classList.toggle('light');
+    const themeBtn = document.getElementById('themeBtn');
+    themeBtn.textContent = document.body.classList.contains('light') ? '☀ Light' : '🌙 Dark';
+}
+
+// Toolbar functions
+function togglePhases() { 
+    document.getElementById('btnPhases').classList.toggle('active');
+    if (currentTab === 'growth') renderCurrentTab();
+}
+function toggleLog() { 
+    document.getElementById('btnLog').classList.toggle('active');
+    if (currentTab === 'growth') renderCurrentTab();
+}
+function toggleErrorBars() { 
+    document.getElementById('btnErrorBars').classList.toggle('active');
+    if (currentTab === 'growth') renderCurrentTab();
+}
+function toggleFit() { 
+    document.getElementById('btnFit').classList.toggle('active');
+    if (currentTab === 'growth') renderCurrentTab();
+}
+function togglePredict() { 
+    document.getElementById('btnPredict').classList.toggle('active');
+    if (currentTab === 'growth') renderCurrentTab();
+}
+function resetZoom() { 
+    // Reset toolbar to default state
+    document.getElementById('btnPhases').classList.add('active');
+    document.getElementById('btnLog').classList.remove('active');
+    document.getElementById('btnErrorBars').classList.remove('active');
+    document.getElementById('btnFit').classList.add('active');
+    document.getElementById('btnPredict').classList.remove('active');
+    if (currentTab === 'growth') renderCurrentTab();
+}
+function toggleAnimate() { 
+    document.getElementById('btnAnimate').classList.toggle('active');
+}
+
+// File operations
+function importCSV(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadData();
+                showToast('Data imported successfully');
+            } else {
+                showToast('Error: ' + (data.error || 'Unknown error'), 'error');
+            }
+        })
+        .catch(error => showToast('Error importing data: ' + error.message, 'error'));
+    }
+}
+
+function exportPNG() {
+    const chartContainer = document.getElementById('chartContainer');
+    if (chartContainer) {
+        html2canvas(chartContainer).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'growth_chart.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }).catch(err => showToast('Error exporting PNG: ' + err.message, 'error'));
+    }
+}
+
+function exportCSV() { window.open('/api/export/csv', '_blank'); }
+
+function copyToClipboard() {
+    navigator.clipboard.writeText(JSON.stringify(currentData, null, 2))
+        .then(() => showToast('Data copied to clipboard'))
+        .catch(() => showToast('Failed to copy data', 'error'));
+}
+
+function printReport() { window.print(); }
+
+// Session management
+function saveSession() {
+    const sessionData = { data: currentData, timestamp: new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(sessionData, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bacterial_session_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Session saved');
+}
+
+function loadSession(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const sessionData = JSON.parse(e.target.result);
+                currentData = sessionData.data;
+                updateStatsCards();
+                renderCurrentTab();
+                showToast('Session loaded successfully');
+            } catch (error) {
+                showToast('Error loading session: ' + error.message, 'error');
+            }
+        };
+        reader.readAsText(file);
+    }
+}
+
+function saveSnapshot() { showToast('Snapshot saved'); }
+function toggleSnap() {
+    const panel = document.getElementById('snapPanel');
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+function clearStorage() {
+    if (confirm('Are you sure you want to clear all data?')) {
+        currentData = {};
+        updateStatsCards();
+        renderCurrentTab();
+        showToast('Data cleared');
+    }
+}
+
+// Utility functions
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+function shareViaURL() {
+    showToast('Share functionality coming soon');
+}
+
+// PWA Service Worker Registration
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/static/sw.js')
+            .then(registration => {
+                console.log('Service Worker registered:', registration);
+
+                // Handle updates
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    if (newWorker) {
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // New version available
+                                showToast('New version available! Refresh to update.', 'info');
+                            }
+                        });
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Service Worker registration failed:', error);
+            });
+    });
+}
+
+// Handle PWA install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+
+    // Show install button if not already installed
+    if (!window.matchMedia('(display-mode: standalone)').matches) {
+        showInstallPrompt();
+    }
+});
+
+function showInstallPrompt() {
+    const installBtn = document.createElement('button');
+    installBtn.className = 'btn btn-primary';
+    installBtn.innerHTML = '📱 Install App';
+    installBtn.style.position = 'fixed';
+    installBtn.style.bottom = '20px';
+    installBtn.style.right = '20px';
+    installBtn.style.zIndex = '1000';
+
+    installBtn.onclick = async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                console.log('User accepted the install prompt');
+            }
+            deferredPrompt = null;
+            installBtn.remove();
+        }
+    };
+
+    document.body.appendChild(installBtn);
+
+    // Auto-hide after 10 seconds
+    setTimeout(() => {
+        if (installBtn.parentNode) {
+            installBtn.remove();
+        }
+    }, 10000);
+}
+
+// Handle app installed
+window.addEventListener('appinstalled', () => {
+    console.log('App was installed');
+    showToast('App installed successfully!');
+    deferredPrompt = null;
+});
+</script>
+
+</body>
+</html>
