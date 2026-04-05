@@ -17,7 +17,7 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 
-app = Flask(__name__, template_folder='templates', static_folder='static')
+app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), 'templates'), static_folder=os.path.join(os.path.dirname(__file__), 'static'))
 
 # Sample data for demonstration
 def generate_sample_data():
