@@ -13,6 +13,9 @@ from scipy.optimize import curve_fit
 from sklearn.cluster import KMeans
 import os
 from datetime import datetime
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 
@@ -95,35 +98,47 @@ def calculate_growth_parameters(time, od600):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    try:
+        return render_template('index.html')
+    except Exception as e:
+        logging.error(f"Error in index route: {e}")
+        return "Internal Server Error", 500
 
 @app.route('/api/data')
 def get_data():
-    return jsonify(app_data['current_data'])
+    try:
+        return jsonify(app_data['current_data'])
+    except Exception as e:
+        logging.error(f"Error in get_data: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/chart/<chart_type>')
 def get_chart(chart_type):
-    data = app_data['current_data']
-    
-    # Extract toolbar options from query parameters
-    options = {
-        'show_phases': request.args.get('phases', 'true').lower() == 'true',
-        'log_scale': request.args.get('log_scale', 'false').lower() == 'true',
-        'show_errors': request.args.get('errors', 'false').lower() == 'true',
-        'show_fit': request.args.get('fit', 'true').lower() == 'true',
-        'show_predict': request.args.get('predict', 'true').lower() == 'true',
-    }
+    try:
+        data = app_data['current_data']
+        
+        # Extract toolbar options from query parameters
+        options = {
+            'show_phases': request.args.get('phases', 'true').lower() == 'true',
+            'log_scale': request.args.get('log_scale', 'false').lower() == 'true',
+            'show_errors': request.args.get('errors', 'false').lower() == 'true',
+            'show_fit': request.args.get('fit', 'true').lower() == 'true',
+            'show_predict': request.args.get('predict', 'true').lower() == 'true',
+        }
 
-    if chart_type == 'growth':
-        return create_growth_chart(data, options)
-    elif chart_type == 'heatmap':
-        return create_heatmap(data)
-    elif chart_type == 'radar':
-        return create_radar_chart(data)
-    elif chart_type == 'science':
-        return create_science_chart(data)
-    else:
-        return jsonify({'error': 'Unknown chart type'})
+        if chart_type == 'growth':
+            return create_growth_chart(data, options)
+        elif chart_type == 'heatmap':
+            return create_heatmap(data)
+        elif chart_type == 'radar':
+            return create_radar_chart(data)
+        elif chart_type == 'science':
+            return create_science_chart(data)
+        else:
+            return jsonify({'error': 'Unknown chart type'})
+    except Exception as e:
+        logging.error(f"Error in get_chart ({chart_type}): {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 def create_growth_chart(data, options=None):
     """Create growth curve chart with optional features"""
@@ -380,34 +395,38 @@ def create_science_chart(data):
 
 @app.route('/api/analyze/<condition>')
 def analyze_condition(condition):
-    """Analyze specific growth condition"""
-    if condition not in app_data['current_data']:
-        return jsonify({'error': 'Condition not found'})
+    try:
+        """Analyze specific growth condition"""
+        if condition not in app_data['current_data']:
+            return jsonify({'error': 'Condition not found'})
 
-    time = np.array(app_data['current_data'][condition]['time'])
-    od600 = np.array(app_data['current_data'][condition]['od600'])
+        time = np.array(app_data['current_data'][condition]['time'])
+        od600 = np.array(app_data['current_data'][condition]['od600'])
 
-    params = calculate_growth_parameters(time, od600)
+        params = calculate_growth_parameters(time, od600)
 
-    if params:
-        analysis = {
-            'condition': condition,
-            'parameters': {
-                'carrying_capacity': round(params['carrying_capacity'], 3),
-                'growth_rate': round(params['growth_rate'], 3),
-                'initial_od': round(params['initial_od'], 3),
-                'lag_time': round(params['lag_time'], 2),
-                'doubling_time': round(params['doubling_time'], 2)
-            },
-            'insights': generate_insights(params)
-        }
-    else:
-        analysis = {
-            'condition': condition,
-            'error': 'Could not fit growth curve'
-        }
+        if params:
+            analysis = {
+                'condition': condition,
+                'parameters': {
+                    'carrying_capacity': round(params['carrying_capacity'], 3),
+                    'growth_rate': round(params['growth_rate'], 3),
+                    'initial_od': round(params['initial_od'], 3),
+                    'lag_time': round(params['lag_time'], 2),
+                    'doubling_time': round(params['doubling_time'], 2)
+                },
+                'insights': generate_insights(params)
+            }
+        else:
+            analysis = {
+                'condition': condition,
+                'error': 'Could not fit growth curve'
+            }
 
-    return jsonify(analysis)
+        return jsonify(analysis)
+    except Exception as e:
+        logging.error(f"Error in analyze_condition ({condition}): {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 def generate_insights(params):
     """Generate AI-like insights from growth parameters"""
@@ -430,15 +449,15 @@ def generate_insights(params):
 
 @app.route('/api/upload', methods=['POST'])
 def upload_csv():
-    """Handle CSV file upload"""
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file provided'})
-
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'})
-
     try:
+        """Handle CSV file upload"""
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'})
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'})
+
         df = pd.read_csv(file)
         # Process CSV data and update app_data
         # This is a simplified version - in production, validate data structure
@@ -446,7 +465,8 @@ def upload_csv():
         app_data['current_data'] = processed_data
         return jsonify({'success': True, 'message': 'Data uploaded successfully'})
     except Exception as e:
-        return jsonify({'error': str(e)})
+        logging.error(f"Error in upload_csv: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 def process_csv_data(df):
     """Process uploaded CSV data"""
@@ -465,32 +485,36 @@ def process_csv_data(df):
 
 @app.route('/api/export/<format>')
 def export_data(format):
-    """Export data in various formats"""
-    data = app_data['current_data']
+    try:
+        """Export data in various formats"""
+        data = app_data['current_data']
 
-    if format == 'csv':
-        # Create CSV from data
-        csv_data = "Time"
-        conditions = list(data.keys())
-        for condition in conditions:
-            csv_data += f",{condition}"
-        csv_data += "\n"
-
-        time_points = data[conditions[0]]['time']
-        for i, t in enumerate(time_points):
-            csv_data += f"{t}"
+        if format == 'csv':
+            # Create CSV from data
+            csv_data = "Time"
+            conditions = list(data.keys())
             for condition in conditions:
-                csv_data += f",{data[condition]['od600'][i]}"
+                csv_data += f",{condition}"
             csv_data += "\n"
 
-        return send_file(
-            io.BytesIO(csv_data.encode()),
-            mimetype='text/csv',
-            as_attachment=True,
-            download_name='growth_data.csv'
-        )
+            time_points = data[conditions[0]]['time']
+            for i, t in enumerate(time_points):
+                csv_data += f"{t}"
+                for condition in conditions:
+                    csv_data += f",{data[condition]['od600'][i]}"
+                csv_data += "\n"
 
-    return jsonify({'error': 'Unsupported format'})
+            return send_file(
+                io.BytesIO(csv_data.encode()),
+                mimetype='text/csv',
+                as_attachment=True,
+                download_name='growth_data.csv'
+            )
+
+        return jsonify({'error': 'Unsupported format'})
+    except Exception as e:
+        logging.error(f"Error in export_data ({format}): {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
